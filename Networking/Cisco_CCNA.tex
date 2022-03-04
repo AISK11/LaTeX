@@ -1,0 +1,782 @@
+\documentclass[10pt, a4paper, onecolumn, oneside, titlepage, openany]{book}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{titlesec} % chapter on line with text
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue, %\ref{}
+    filecolor=magenta, % \href{run:./file.txt}{File.txt}
+    urlcolor=cyan, % \href{http://www.overleaf.com}{Link}
+    pdftitle={Cisco CCNA}
+    pdfpagemode=FullScreen,
+    }
+\usepackage{menukeys}
+\usepackage{fancyvrb}
+
+% table formatting
+\setlength{\arrayrulewidth}{0.5mm} % border
+\setlength{\tabcolsep}{18pt} % space from border (X axis)
+\renewcommand{\arraystretch}{1.5} % space from border (Y axis)
+\usepackage[format=hang,font=small,labelfont=bf]{caption} % bold table caption
+
+% chapter formatting
+\renewcommand{\chaptername}{}
+\titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter.}{1em}{}
+
+% decorative lines:
+\renewcommand{\headrulewidth}{2pt}
+\renewcommand{\footrulewidth}{2pt}
+\pagestyle{fancy}
+\fancyhf{}
+    \chead{\leftmark}
+    \cfoot{\thepage}
+\fancypagestyle{plain}{
+\fancyhf{}
+    \chead{\leftmark}
+    \cfoot{\thepage}
+}
+
+% verbatim formatting
+\definecolor{device}{RGB}{0, 100, 200}
+\definecolor{command}{RGB}{41, 182, 0}
+\definecolor{nocommand}{RGB}{222, 0, 0}
+\definecolor{showcommand}{RGB}{255, 80, 0}
+\definecolor{warncommand}{RGB}{255, 80, 0}
+\definecolor{root}{RGB}{222, 0, 0}
+\definecolor{user}{RGB}{0, 150, 0}
+\definecolor{dir}{RGB}{0, 100, 200}
+\definecolor{file}{RGB}{77, 187, 101}
+\definecolor{comment}{RGB}{0, 182, 182}
+\definecolor{background}{RGB}{240, 240, 240}
+\renewcommand{\FancyVerbFormatLine}[1]{\colorbox{background}{#1}}
+
+
+
+
+
+\title{\textbf{Cisco CCNA}}
+\author{AISK11}
+\date{March 2022}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{Basics}
+\section{Shortcuts}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|}
+    \hline
+    \textbf{Keys} & \textbf{Description} \\
+    \hline
+    \keys{Ctrl + Shift + 6} & Interrupt current IOS process \\
+    \keys{Ctrl + R} & Reprint current command line \\
+    \hline
+\end{tabular}
+\caption{Cisco IOS shortcuts.}
+\label{table:1}
+\end{table}
+
+\section{Help}
+\begin{itemize}
+    \item \textbf{Show available commands:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device*} \textcolor{showcommand}{?}
+\end{Verbatim}
+    \item \textbf{Show available command options:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device*} <COMMAND> \textcolor{showcommand}{?}
+\end{Verbatim}
+\end{itemize}
+
+\section{CLI Navigation}
+\begin{itemize}
+    \item \textbf{Privilege escalation}
+    \begin{itemize}
+        \item \textbf{Access privileged mode:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device>} \textcolor{command}{enable}
+\end{Verbatim}
+        \item \textbf{Access configuration mode:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{command}{configure terminal}
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Privilege deescalation}
+    \begin{itemize}
+        \item \textbf{Return to less privileged mode:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device*} \textcolor{nocommand}{exit}
+\end{Verbatim}
+    \end{itemize}
+\end{itemize}
+
+\section{Hostname}
+\label{hostname}
+\begin{itemize}
+    \item \textbf{Set hostname on device:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{hostname} <HOSTNAME>
+\end{Verbatim}
+\end{itemize}
+
+\section{Configuration}
+\subsection{Memory Hardware}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|}
+    \hline
+    \textbf{Memory} & \textbf{Description} \\
+    \hline
+    ROM & POST + bootloader \\
+    Flash & Cisco IOS \\
+    NVRAM & startup-config \\
+    RAM & running-config \\
+    \hline
+\end{tabular}
+\caption{Cisco memory types overview.}
+\label{table:2}
+\end{table}
+\subsection{Boot Order}
+\begin{enumerate}
+    \item Device performs POST in ROM.
+    \item On successful POST, bootloader is copied from ROM to RAM.
+    \item Bootloader chooses IOS image from Flash to RAM and loads IOS image.
+    \item IOS runs startup-config from NVRAM.
+\end{enumerate}
+\subsection{Configuration}
+\begin{itemize}
+    \item \textbf{Save configuration (RAM -> NVRAM):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{command}{copy running-config startup-config}
+\end{Verbatim}
+    \item \textbf{Load configuration (NVRAM -> RAM):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{nocommand}{copy startup-config running-config}
+\end{Verbatim}
+    \item \textbf{Erase full startup configuration}
+    \begin{enumerate}
+        \item \textbf{See all files:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{showcommand}{dir}
+\end{Verbatim}
+        \item \textbf{Remove startup-config (NVRAM):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{nocommand}{erase startup-config}
+\end{Verbatim}
+        \item \textbf{Remove VLANs data:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch#} \textcolor{nocommand}{delete vlan.dat}
+\end{Verbatim}
+        \item \textbf{Reload device:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{nocommand}{reload}
+\end{Verbatim}
+    \end{enumerate}
+\end{itemize}
+
+\chapter{Passwords}
+\section{Banner}
+\subsection{MOTD}
+Used to display temporary messages.
+\begin{itemize}
+    \item \textbf{Set MOTD:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{banner motd} \%<TEXT>\%
+\end{Verbatim}
+    \item \textbf{Remove MOTD:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{nocommand}{no banner motd} \%<TEXT>\%
+\end{Verbatim}
+\end{itemize}
+
+\section{Local}
+\subsection{User EXEC mode}
+\begin{itemize}
+    \item \textbf{Console access (Plaintext):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{line} console 0
+\textcolor{device}{Device(config-line)#} \textcolor{command}{password} <PASSWORD>
+\textcolor{device}{Device(config-line)#} \textcolor{command}{login}
+\end{Verbatim}
+    \item \textbf{VTY (SSH and Telnet) access (Plaintext):}
+    \newline Telnet is auto enabled after VTY password is configured.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{line} vty 0 15
+\textcolor{device}{Device(config-line)#} \textcolor{command}{password} <PASSWORD>
+\textcolor{device}{Device(config-line)#} \textcolor{command}{login}
+\end{Verbatim}
+\end{itemize}
+\subsection{Privileged EXEC mode}
+\begin{itemize}
+    \item \textbf{Privilege EXEC access (MD5):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{enable secret} <PASSWORD>
+\end{Verbatim}
+\end{itemize}
+\subsection{Encrypt Passwords}
+\begin{itemize}
+    \item \textbf{Encrypt all Plaintext passwords with Vigenere Cipher:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{service password-encryption}
+\end{Verbatim}
+\end{itemize}
+\subsection{Advanced Password Settings}
+\begin{itemize}
+    \item \textbf{Minimal password length (8):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{security} passwords min-length <8>
+\end{Verbatim}
+    \item \textbf{Block login for 120s after 3 failed attempts within 60 seconds:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{login} block-for <120> attempts <3> within <60>
+\end{Verbatim}
+    \item \textbf{Logout from exec mode after 5 minutes and 30 seconds of inactivity:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config-line)#} \textcolor{command}{exec-timeout} <5> <30>
+\end{Verbatim}
+\end{itemize}
+
+\section{SSH}
+\begin{enumerate}
+    \item \textbf{Requires IP address:}
+    \begin{itemize}
+        \item \textbf{Switch:}
+        \newline See section \ref{management_vlan}
+        \item \textbf{Router:}
+        \newline See section \ref{routing}
+    \end{itemize}
+    \item \textbf{Requires Hostname:}
+    \newline See section \ref{hostname}
+    \item \textbf{Set default domain name:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{ip domain-name} <DOMAIN.COM>
+\end{Verbatim}
+    \item \textbf{Generate encryption keys:}
+    Recommended at least 1024 bits.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{crypto} key generate rsa general-keys modulus <360-2048>
+\end{Verbatim}
+    \item \textbf{Create login for user:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{username} <USER> secret <PASSWORD>
+\end{Verbatim}
+    \item \textbf{Use login with specified username and passwords:}
+    \newline Overwrites previously set up with only VTY passwords (without username).
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{line} vty 0 15
+\textcolor{device}{Device(config-line)#} \textcolor{command}{login local}
+\end{Verbatim}
+    \item \textbf{Disable telnet:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config-line)#} \textcolor{command}{transport input ssh}
+\end{Verbatim}
+    \item \textbf{Enable more secure SSHv2:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{ip ssh version} 2
+\end{Verbatim}
+\end{enumerate}
+\begin{itemize}
+    \item \textbf{Troubleshooting}
+    \begin{itemize}
+        \item \textbf{SSH config (version, authentication):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{showcommand}{show ip ssh}
+\end{Verbatim}
+        \item \textbf{SSH sessions:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device#} \textcolor{showcommand}{show ssh}
+\end{Verbatim}
+    \end{itemize}
+\end{itemize}
+
+\chapter{VLANs}
+\section{VLANs}
+\textbf{Default VLAN:} VLAN 1, cannot be renamed nor deleted.
+\newline \textbf{Native VLAN:} Used by untagged traffic. Default VLAN1.
+\newline \textbf{Management VLAN:} Used for management traffic (Telnet, SSH, HTTP(S), SNMP). Default VLAN1.
+\newline \textbf{Data VLAN:} User-generated traffic.
+\newline \textbf{Voice VLAN:} Transmission priority over other types of network traffic. Ability to be routed around congested areas on the network. Delay less than 150ms across the network.
+\begin{itemize}
+    \item \textbf{Normal Range:}
+    \begin{itemize}
+        \item 1 - 1005
+        \item Reserved: 1, 1002-1005
+    \end{itemize}
+    \item \textbf{Extended Range:}
+    \begin{itemize}
+        \item 1006 - 4094
+        \item They support fewer VLAN features than normal VLANs.
+        \item Required VTP transparent mode config mode to support extended range.
+    \end{itemize}
+\end{itemize}
+\subsection{Extended VLAN Range}
+\begin{enumerate}
+    \item \textbf{Enable extended VLAN Range:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{vtp} mode transparent
+\end{Verbatim}
+\end{enumerate}
+\subsection{Management VLAN}
+\label{management_vlan}
+\begin{enumerate}
+    \item \textbf{Create Management VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{vlan} <2>
+\textcolor{device}{Switch(config-vlan)#} \textcolor{command}{name} <Management>
+\end{Verbatim}
+    \item \textbf{Assign IP address to VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{interface} vlan <2>
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{ip} address <192.168.2.2> <255.255.255.0>
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{no} shutdown
+\end{Verbatim}
+    \item \textbf{Assign default gateway:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{ip} default-gateway <192.168.2.1>
+\end{Verbatim}
+\end{enumerate}
+\subsection{Access VLAN}
+Configured on interfaces connected to end devices.
+\begin{enumerate}
+    \item \textbf{Create VLAN:}
+    \begin{itemize}
+        \item \textbf{Data VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{vlan} <10>
+\textcolor{device}{Switch(config-vlan)#} \textcolor{command}{name} <Data>
+\end{Verbatim}
+        \item \textbf{Voice VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{vlan} <150>
+\textcolor{device}{Switch(config-vlan)#} \textcolor{command}{name} <Voice>
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Assign VLAN to interface:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{interface} [range] <FastEthernet0/1> [- 24]
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} mode <access>
+\end{Verbatim}
+    \begin{itemize}
+        \item \textbf{Data VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} access vlan <10>
+\end{Verbatim}
+        \item \textbf{Voice VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{mls} qos trust cos
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} voice vlan <150>
+\end{Verbatim}
+    \end{itemize}
+\end{enumerate}
+\subsection{Trunk VLAN}
+Configured on interfaces connected to other switch or router.
+\begin{enumerate}
+    \item \textbf{Configure interface as trunk:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config)#} \textcolor{command}{interface} <GigabitEthernet 0/1>
+\textcolor{device}{Switch(config)#} \textcolor{command}{switchport} trunk encapsulation dot1q
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} mode <trunk>
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} nonegotiate
+\end{Verbatim}
+    \item \textbf{Change native VLAN:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} trunk native vlan <1000>
+\textcolor{device}{Switch(config-if)#} \textcolor{nocommand}{no switchport trunk native vlan}
+\end{Verbatim}
+    \item \textbf{Select which VLANs will be propagated:}
+\newline If none are selected, then all VLANs are propagated.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Switch(config-if)#} \textcolor{command}{switchport} trunk allowed vlan <2,10,150,1000>
+\textcolor{device}{Switch(config-if)#} \textcolor{nocommand}{no switchport trunk allowed vlan}
+\end{Verbatim}
+\end{enumerate}
+
+\section{Inter-VLAN Routing}
+Requires default GW IP addresses on router. See section \ref{routing}.
+\subsection{Router on a Stick}
+\begin{enumerate}
+    \item \textbf{Management VLAN config:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{interface} <G0/0/1.10>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{description} <Default Gateway for VLAN 2>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{encapsulation} dot1Q <2>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{ip} add <192.168.2.1> <255.255.255.0>
+\end{Verbatim}
+    \item \textbf{Data VLAN config:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{interface} <G0/0/1.10>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{description} <Default Gateway for VLAN 10>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{encapsulation} dot1Q <10>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{ip} add <192.168.10.1> <255.255.255.0>
+\end{Verbatim}
+    \item \textbf{Voice VLAN config:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{interface} <G0/0/1.150>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{description} <Default Gateway for VLAN 150>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{encapsulation} dot1Q <150>
+\textcolor{device}{Router(config-subif)#} \textcolor{command}{ip} add <192.168.150.1> <255.255.255.0>
+\end{Verbatim}
+    \item \textbf{Configure interface itself:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{interface} <G0/0/1>
+\textcolor{device}{Router(config-if)#} \textcolor{command}{description} <Trunk link to Switch>
+\textcolor{device}{Router(config-if)#} \textcolor{command}{no} shut
+\end{Verbatim}
+\end{enumerate}
+\subsection{L3 Switch}
+\begin{enumerate}
+    \item \textbf{Create VLANs}
+    \begin{itemize}
+        \item \textbf{Management}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{vlan} <2>
+\textcolor{device}{L3Switch(config-vlan)#} \textcolor{command}{name} <Management>
+\end{Verbatim}
+        \item \textbf{Data}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{vlan} <10>
+\textcolor{device}{L3Switch(config-vlan)#} \textcolor{command}{name} <Data>
+\end{Verbatim}
+        \item \textbf{Voice}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{vlan} <150>
+\textcolor{device}{L3Switch(config-vlan)#} \textcolor{command}{name} <Voice>
+\end{Verbatim}
+    \end{itemize}
+        \item \textbf{Create Gateway for VLANs:}
+\begin{itemize}
+    \item \textbf{Management VLAN GW:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{interface} vlan <2>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{description} <Default Gateway for VLAN 2>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{ip} address <192.168.2.1> <255.255.255.0>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{no} shut
+\end{Verbatim}
+    \item \textbf{Data VLAN GW:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{interface} vlan <10>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{description} <Default Gateway for VLAN 10>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{ip} address <192.168.10.1> <255.255.255.0>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{no} shut
+\end{Verbatim}
+    \item \textbf{Voice VLAN GW:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{interface} vlan <150>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{description} <Default Gateway for VLAN 150>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{ip} address <192.168.150.1> <255.255.255.0>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{no} shut
+\end{Verbatim}
+\end{itemize}
+    \item \textbf{Configure Access Ports}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{interface} <FastEthernet 0/1>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{description} <Acces port to PC>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{switchport} mode <access>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{switchport} access vlan <10>
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{mls} qos trust cos
+\textcolor{device}{L3Switch(config-if)#} \textcolor{command}{switchport} voice vlan <150>
+\end{Verbatim}
+    \item \textbf{Enable IP routing:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{L3Switch(config)#} \textcolor{command}{ip} routing
+\end{Verbatim}
+\end{enumerate}
+
+
+
+
+\chapter{Routing}
+\label{routing}
+\section{Static}
+\begin{verbatim}
++--------------------+                                      +--------------------+
+|LAN 1               |G0/0/0+----+G0/0/1  G0/0/0+----+G0/0/1|LAN 2               |
+|10.0.1.0/24         |------| R1 |--------------| R2 |------|192.168.0.0/24      |
+|2001:db8:acad:1::/64|    .1+----+.1          .2+----+.1    |2001:db8:acad:2::/64|
++--------------------+            172.16.0.0/30             +--------------------+
+                              2001:db8:acad:0::/64
+IPv6 LLC Addresses:
+R1 G/0/0/0: fe80::1:1/64
+R1 G/0/0/1: fe80::1:1/64
+R2 G/0/0/0: fe80::1:2/64
+R2 G/0/0/1: fe80::1:1/64
+\end{verbatim}
+\subsection{IPv4}
+\begin{enumerate}
+    \item \textbf{Assign IP address to interfaces:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/0>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ip} address <10.0.1.1> <255.255.255.0>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shut}
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/1>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ip} address <172.16.0.1> <255.255.255.252>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shut}
+\end{Verbatim}
+    \item \textbf{Static Route:}
+    \begin{itemize}
+        \item \textbf{Normal Static Route:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ip} route <192.168.0.0> <255.255.255.0>
+<172.16.0.2|G0/0/1>
+\end{Verbatim}
+        \item \textbf{Fully Specified Static Route:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ip} route <192.168.0.0> <255.255.255.0>
+<G0/0/1 172.16.0.2>
+\end{Verbatim}
+        \end{itemize}
+    \item \textbf{Default Static Route:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ip} route 0.0.0.0 0.0.0.0 <172.16.0.2|G0/0/1>
+\end{Verbatim}
+    \item \textbf{Floating Static Route:}
+\newline Appears in routing table after primary route fails.
+\newline Static routes have distance of \textbf{1}. Less is preferable.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ip} route 0.0.0.0 0.0.0.0 <IPv4|INTERFACE> [5]
+\end{Verbatim}
+\end{enumerate}
+\subsection{IPv6}
+\label{Router_IPv6}
+\begin{enumerate}
+    \item \textbf{Enable router as IPv6:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ipv6} unicast-routing
+\end{Verbatim}
+    \item \textbf{Assign Link-Local Address (LLC):}
+\newline Has to be unique only within the LAN.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/0>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ipv6} address <fe80::1:1>/64 link-local
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shutdown}
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/1>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ipv6} address <fe80::1:1>/64 link-local
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shutdown}
+\end{Verbatim}
+    \item \textbf{Assign Global Unicast Address (GUA):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/0>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ipv6} address <2001:db8:acad:1::1>/64
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shutdown}
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} <G0/0/1>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ipv6} address <2001:db8:acad:0::1>/64
+\textcolor{device}{R1(config-if)#} \textcolor{command}{no shutdown}
+\end{Verbatim}
+    \item \textbf{Static Route:}
+    \begin{itemize}
+        \item \textbf{Normal Static Route:}
+\newline Can also be specified with LLC IP address but please avoid.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ipv6} route <2001:db8:acad:2::/64>
+<2001:db8:acad:0::2|G0/0/1>
+\end{Verbatim}
+        \item \textbf{Fully Specified Static Route}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ipv6} route <2001:db8:acad:2::/64>
+<G0/0/1 2001:db8:acad:0::2>
+\end{Verbatim}
+    \item \textbf{Default Static Route:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ipv6} route ::/0 <2001:db8:acad:2|G0/0/1>
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Floating Static Route:}
+\newline Appears in routing table after primary route fails.
+\newline Static routes have distance of \textbf{1}. Less preferable
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{ipv6} route ::/0 <2001:db8:acad:2|G0/0/1> [5]
+\end{Verbatim}
+\end{enumerate}
+
+\section{OSPF}
+\textbf{Router ID:} explicitly configured OR highest loopback OR highest IP address.
+\textbf{OSPF Election:} highest Router ID is elected.
+\begin{enumerate}
+    \item \textbf{Enable OSPFv2:}
+\newline Process ID does not have to be the same on all routers, but is recommended.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{router} ospf <1>
+\end{Verbatim}
+    \item \textbf{Configure Router ID:}
+    \begin{itemize}
+        \item \textbf{Router ID:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config-router)#} \textcolor{command}{router} router-id <1.1.1.1>
+\end{Verbatim}
+    \item \textbf{Loopback:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{interface} Loopback <1>
+\textcolor{device}{R1(config-if)#} \textcolor{command}{ip} address <1.1.1.1> <255.255.255.255>
+\end{Verbatim}
+    \item \textbf{Verify Router ID:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1#} \textcolor{showcommand}{show ip protocols | include Router ID}
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Modify Router ID:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{R1(config)#} \textcolor{command}{router} ospf <1>
+\textcolor{device}{R1(config-router)#} \textcolor{command}{router} router-id <1.1.1.1>
+\textcolor{device}{R1#} \textcolor{command}{clear ip ospf process}
+\end{Verbatim}
+\end{enumerate}
+
+
+
+\chapter{Services}
+\section{DHCP}
+Requires IP address for router. See section \ref{routing}.
+\subsection{DHCPv4}
+\begin{enumerate}
+    \item \textbf{Exclude IPv4 Addresses (range):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{ip} dhcp excluded-address <192.168.1.1 [192.168.1.9]>
+\textcolor{device}{Router(config)#} \textcolor{command}{ip} dhcp excluded-address <192.168.1.254>
+\end{Verbatim}
+    \item \textbf{Define pool name:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{ip} dhcp pool <DHCP-POOL-1>
+\end{Verbatim}
+    \item \textbf{Define network range:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(dhcp-config)#} \textcolor{command}{network} <192.168.1.0 255.255.255.0>
+\end{Verbatim}
+    \item \textbf{Define default GW:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(dhcp-config)#} \textcolor{command}{default-router} <192.168.1.1>
+\end{Verbatim}
+    \item \textbf{Define DNS server:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(dhcp-config)#} \textcolor{command}{dns-server} <1.1.1.1>
+\end{Verbatim}
+    \item \textbf{Change duration of DHCP lease:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(dhcp-config)#} \textcolor{command}{lease} <DAYS [HOURS [MINUTES]]>
+\end{Verbatim}
+    \item \textbf{Configure domain-name DHCP lease:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(dhcp-config)#} \textcolor{command}{domain-name} <domain.com>
+\end{Verbatim}
+    \item \textbf{Verify}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router#} \textcolor{showcommand}{show} ip dhcp binding
+\end{Verbatim}
+    \item \textbf{Enable/Disable}
+\newline Default: Enabled
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{service} dhcp
+\textcolor{device}{Router(config)#} \textcolor{nocommand}{no service dhcp}
+\end{Verbatim}
+\end{enumerate}
+\subsection{DHCPv6}
+
+
+
+\chapter{Redundancy}
+\section{Etherchannel}
+\begin{itemize}
+    \item \textbf{Following config must be same on both switches for all etherchannel interfaces:}
+    \begin{itemize}
+        \item Switchport mode (trunk).
+        \item Speed.
+        \item Duplex.
+        \item Allowed VLANs.
+    \end{itemize}
+\end{itemize}
+\subsection{Topology}
+\begin{verbatim}
++----+Fa0/1------Fa0/1+----+
+| S1 |                | S2 |
++----+Fa0/2------Fa0/2+----+
+\end{verbatim}
+\subsection{LACP}
+\begin{enumerate}
+    \item \textbf{Configure LACP etherchannel:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{interface} range <FA0/1 - 2>
+\textcolor{device}{Device(config-if-range)#} \textcolor{command}{channel-group} <1> mode active
+\textcolor{device}{Device(config)#} \textcolor{command}{interface} port-channel <1>
+\textcolor{device}{Device(config-if)#} \textcolor{command}{switchport trunk encapsulation dot1q}
+\textcolor{device}{Device(config-if)#} \textcolor{command}{switchport mode} <trunk>
+\end{Verbatim}
+\end{enumerate}
+
+
+
+\chapter{Security}
+\section{LAN Security}
+\section{ACL}
+\begin{itemize}
+    \item \textbf{Standard ACLs -} source Layer 3 filtering. Range 1 to 99.
+    \item \textbf{Extended ACLs -} source/destination Layer 3/4 filtering. Range 100 to 199.
+\end{itemize}
+\subsection{Numbered Standard ACL}
+\begin{enumerate}
+    \item \textbf{Create numbered standard ACL:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Router(config)#} \textcolor{command}{access-list} <1> [remark <DESCRIPTION>] <permits|deny>
+\end{Verbatim}
+\end{enumerate}
+
+
+\chapter{Misc}
+\section{Domain Lookup}
+Domain lookup function interprets invalid commands as DNS names.
+\begin{itemize}
+    \item \textbf{Disable domain lookup:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{command}{no ip domain lookup}
+\end{Verbatim}
+    \item \textbf{Enable domain lookup:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{device}{Device(config)#} \textcolor{nocommand}{ip domain lookup}
+\end{Verbatim}
+\end{itemize}
+
+\chapter{Linux Client Notes}
+\section{Serial Connection}
+\begin{enumerate}
+    \item \textbf{Dependencies:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{apt} install putty
+\end{Verbatim}
+    \item \textbf{Run as root:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{putty}
+\end{Verbatim}
+    \item \textbf{Select Serial Interface}
+\begin{itemize}
+    \item RS232 = \textbf{/dev/ttyS0}
+    \item USB console = \textbf{/dev/ttyUSB0}
+\end{itemize}
+\end{enumerate}
+\section{SSH client}
+\begin{itemize}
+    \item \textbf{Choose older cipher and KeyExchange Algorithm:}
+\end{itemize}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{ssh} <USER>@<HOST> -c <3des-cbc> -oKexAlgorithms=<+diffie-hellman-group1-sha1>
+\end{Verbatim}
+
+
+
+
+
+\chapter{ToDo}
+\begin{itemize}
+    \item DHCP6
+    \item LAN Security
+    \item OSPF
+    \item ACL
+    \item NAT
+    \item NTP, Syslog, SNMP, CDP, LLDP
+\end{itemize}
+
+
+
+\end{document}
