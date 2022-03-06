@@ -74,7 +74,8 @@
     \hline
     CPU architecture & amd64\\
     Motherboard & UEFI\\
-    GPU & Nvidia \\
+    WiFi & iwlwifi\\
+    GPU & Nvidia\\
     \hline
 \end{tabular}
 \caption{System hardware overview.}
@@ -124,6 +125,12 @@ Make sure, that Secure Boot is disabled!
 
 
 \chapter{Pre-Installation}
+\section{Verify UEFI}
+\begin{enumerate}
+    \item \textbf{UEFI is used if following directory exists:}
+\newline \textbf{\textcolor{dir}{/sys/firmware/efi/}}
+\end{enumerate}
+
 \section{Check Disk Sectors}
 \subsection{Theory}
 \begin{itemize}
@@ -173,6 +180,13 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
 \end{enumerate}
 
+\section{Connect to the internet}
+\begin{itemize}
+    \item \textbf{Ethernet}
+
+    \item \textbf{WiFi}
+\end{itemize}
+
 
 \chapter{Installation}
 \section{Disk Partitioning}
@@ -184,16 +198,16 @@ Make sure, that Secure Boot is disabled!
 \textcolor{root}{root#} \textcolor{command}{parted} -s <\textcolor{block}{/dev/sdX}> mktable gpt
 \end{Verbatim}
 \end{enumerate}
-\subsection{Partitions}
+\subsection{Basic Partitions}
 \begin{enumerate}
     \item \textbf{Enter cfdisk:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{root#} \textcolor{command}{cfdisk} <\textcolor{block}{/dev/sdX}>
 \end{Verbatim}
-    \item \textbf{Create EFI partition (max 512 MiB):}
+    \item \textbf{Create EFI partition (recommended 550 MiB):}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{cfdisk>} \textcolor{command}{n}
-\textcolor{root}{cfdisk>} \textcolor{command}{512MiB}
+\textcolor{root}{cfdisk>} \textcolor{command}{550MiB}
 \textcolor{root}{cfdisk>} \textcolor{command}{t}
 \textcolor{root}{cfdisk>} \textcolor{command}{EFI System}
 \end{Verbatim}
@@ -231,6 +245,103 @@ Make sure, that Secure Boot is disabled!
 > <PASSWORD (VERIFY)>
 \end{Verbatim}
     \end{enumerate}
+\end{enumerate}
+    \subsection{Advanced LUKS stuff}
+\begin{itemize}
+    \item \textbf{Open LUKS:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} open --type luks <\textcolor{block}{/dev/sdX2}> <luks>
+> <PASSWORD>
+\end{Verbatim}
+    \item \textbf{Close LUKS:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} close <luks>
+\end{Verbatim}
+    \item \textbf{LUKS header:}
+    \begin{enumerate}
+        \item \textbf{See LUKS header:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} luksDump <\textcolor{block}{/dev/sdX2}>
+\end{Verbatim}
+        \item \textbf{Make LUKS header backup:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} luksHeaderBackup <\textcolor{block}{/dev/sdX2}>
+--header-backup-file <\textcolor{file}{FILE}>
+\end{Verbatim}
+        \item \textbf{Destroy LUKS header:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} luksErase <\textcolor{block}{/dev/sdX2}>
+> YES
+\end{Verbatim}
+        \item \textbf{Restore LUKS header:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} luksHeaderRestore <\textcolor{block}{/dev/sdX2}>
+--header-backup-file <\textcolor{file}{FILE}>
+> YES
+\end{Verbatim}
+    \end{enumerate}
+\end{itemize}
+\subsection{Encrypted LVM Partition}
+\begin{figure}[ht]
+    \begin{center}
+        \includegraphics[width=115mm]{./src/images/lvm.png}
+        \caption{LVM structure.}
+        \label{fig:1}
+    \end{center}
+\end{figure}
+\begin{enumerate}
+    \item \textbf{Open encrypted partition:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} open --type luks <\textcolor{block}{/dev/sdX2}> <luks_lvm>
+> <PASSWORD>
+\end{Verbatim}
+    \item \textbf{Create LVM Physical Volume:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} pvcreate <\textcolor{block}{/dev/mapper/luks_lvm}>
+\end{Verbatim}
+    \item \textbf{Create LVM Volume Group:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} vgcreate <vg0> <\textcolor{block}{/dev/mapper/luks_lvm}>
+\end{Verbatim}
+    \item \textbf{Create LVM Logical Volumes:}
+    \begin{enumerate}
+        \item \textbf{Root Logical Volume:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} lvcreate -l 100\%FREE -n <root> <vg0>
+\end{Verbatim}
+    \end{enumerate}
+    \item \textbf{Verify LVM}
+    \begin{itemize}
+        \item \textbf{Check LVM Physical Volumes:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} pvdisplay
+\end{Verbatim}
+        \item \textbf{Check LVM Volume Groups:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} vgdisplay [vg0]
+\end{Verbatim}
+        \item \textbf{Check LVM Logical Volumes:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} lvdisplay
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Format LVM Logical Volumes:}
+    \begin{enumerate}
+        \item \textbf{Root Partition:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{mkfs.btrfs} <\textcolor{block}{/dev/vg0/root}>
+\textcolor{root}{root#} \textcolor{command}{btrfs} filesystem label <\textcolor{block}{/dev/vg0/root}> <LVM_ROOT>
+\end{Verbatim}
+    \end{enumerate}
+\end{enumerate}
+
+\section{Gentoo Installation}
+\begin{enumerate}
+    \item \textbf{Mount Gentoo:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> \textcolor{dir}{/mnt/gentoo}
+\end{Verbatim}
+
 
 \end{enumerate}
 
