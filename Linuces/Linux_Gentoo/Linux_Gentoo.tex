@@ -64,7 +64,7 @@
 \tableofcontents
 
 
-\chapter{System Info/Requirements}
+\chapter{System Info}
 \section{System Hardware}
 \begin{table}[h!]
 \centering
@@ -73,6 +73,7 @@
     \textbf{Hardware} & \textbf{Value} \\
     \hline
     CPU architecture & amd64\\
+    CPU vendor & intel\\
     Motherboard & UEFI\\
     WiFi & iwlwifi\\
     GPU & Nvidia\\
@@ -80,6 +81,25 @@
 \end{tabular}
 \caption{System hardware overview.}
 \label{table:1}
+\end{table}
+
+\section{System Software}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|}
+    \hline
+    \textbf{Hardware} & \textbf{Value} \\
+    \hline
+    Encryption & LUKS\\
+    LVM & yes\\
+    Root filesystem & btrfs\\
+    Bootloader & rEFInd\\
+    Init & runit\\
+    Virtualization & Xen\\
+    \hline
+\end{tabular}
+\caption{System software overview.}
+\label{table:2}
 \end{table}
 
 
@@ -90,10 +110,12 @@
     \begin{itemize}
         \item \textbf{General Gentoo download page:}
 \newline \url{https://www.gentoo.org/downloads/}
-        \item \textbf{Gentoo files from mirror (image, stage3, signatures):}
+        \item \textbf{Gentoo files from bouncer (image, stage3, signatures):}
 \newline \url{https://bouncer.gentoo.org/fetch/root/all/releases/amd64/autobuilds/current-install-amd64-minimal/}
+        \item \textbf{Gentoo mirrors:}
+\newline \url{https://www.gentoo.org/downloads/mirrors/}
     \end{itemize}
-    \item \textbf{Verify download:}
+    \item \textbf{Verify download: @todo}
 \end{enumerate}
 
 \section{USB preparation}
@@ -134,7 +156,7 @@ Make sure, that Secure Boot is disabled!
 \section{Check Disk Sectors}
 \subsection{Theory}
 \begin{itemize}
-    \item \textbf{Sector:} smallest unit size on disk. Usually 512 bytes, but some hard disks have 4096.
+    \item \textbf{Sector:} smallest unit size on disk. 512 or 4096 bytes.
     \item \textbf{Block:} Allocation size the FS uses. Cannot be smaller than size of the sector. Can be group of sectors (4096b: 8 x 512b sectors).
     \begin{itemize}
         \item \textbf{512b =} good for lot of small files. More blocks = more metadata.
@@ -180,12 +202,23 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
 \end{enumerate}
 
-\section{Connect to the internet}
+\section{Connect To The Internet @todo}
 \begin{itemize}
     \item \textbf{Ethernet}
 
     \item \textbf{WiFi}
 \end{itemize}
+
+\section{Time Sync}
+\begin{enumerate}
+    \item \textbf{Synchronize local time to correctly access internet:}
+    \begin{itemize}
+        \item \textbf{Manual:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{date} <MMDDhhmmYYYY>
+\end{Verbatim}
+    \end{itemize}
+\end{enumerate}
 
 
 \chapter{Installation}
@@ -284,7 +317,7 @@ Make sure, that Secure Boot is disabled!
 \subsection{Encrypted LVM Partition}
 \begin{figure}[ht]
     \begin{center}
-        \includegraphics[width=115mm]{./src/images/lvm.png}
+        \includegraphics[width=115mm]{./src/img/lvm.png}
         \caption{LVM structure.}
         \label{fig:1}
     \end{center}
@@ -335,14 +368,100 @@ Make sure, that Secure Boot is disabled!
     \end{enumerate}
 \end{enumerate}
 
-\section{Gentoo Installation}
+\section{Stage3}
 \begin{enumerate}
     \item \textbf{Mount Gentoo:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> \textcolor{dir}{/mnt/gentoo}
+\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> \textcolor{dir}{/mnt/gentoo/}
 \end{Verbatim}
-
-
+    \item \textbf{Navigate to Gentoo install directory:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cd} \textcolor{dir}{/mnt/gentoo/}
+\end{Verbatim}
+    \item \textbf{Download Stage3 (from DK mirror):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{links} https://www.gentoo.org/downloads/mirrors/
+\end{Verbatim}
+\menu[,]{DK, https://mirrors.dotsrc.org/gentoo/, releases/, amd64/, autobuilds/, current-stage3-amd64-openrc/, stage3-amd64-openrc-<release>.tar.xz}
+    \item \textbf{Verify download: @todo}
+    \item \textbf{Extract Stage3 tarball:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{tar} xvJpf <\textcolor{file}{./stage3-amd64-openrc-<release>.tar.xz}>
+--xattrs-include='*.*' --numeric-owner
+\end{Verbatim}
+    \item \textbf{Remove tar:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{rm} -f <\textcolor{file}{./stage3-amd64-openrc-<release>.tar.xz}>
+\end{Verbatim}
+    \item \textbf{Gentoo ebuild repository:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{mkdir} --parents \textcolor{dir}{/mnt/gentoo/etc/portage/repos.conf/}
+\textcolor{root}{root#} \textcolor{command}{cp} \textcolor{file}{/mnt/gentoo/usr/share/portage/config/repos.conf}
+\textcolor{file}{/mnt/gentoo/etc/portage/repos.conf/gentoo.conf}
+\end{Verbatim}
 \end{enumerate}
+
+\section{Compile Options}
+\begin{enumerate}
+    \item \textbf{Configure compile options:}
+\newline File (\textbf{\textcolor{file}{/mnt/gentoo/etc/portage/make.conf}}):
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{comment}{## Do not use ’-march=native’ with distcc!}
+\textcolor{comment}{## Flags for C, C++, FORTRAN77 and FORTRAN applications:}
+CFLAGS="-march=native -O2 -pipe"
+CXXFLAGS="\$\{CFLAGS\}"
+FCFLAGS="\$\{CFLAGS\}"
+FFLAGS="\$\{CFLAGS\}"
+
+\textcolor{comment}{## Build output language (english):}
+LC_MESSAGES=C
+
+\textcolor{comment}{## Parallel "make" jobs = CPUs, load average:}
+MAKEOPTS="-j\$(nproc) -l\$(nproc)"
+\textcolor{comment}{## Default emerge options:}
+EMERGE_DEFAULT_OPTS="--jobs=\$(nproc) --load-average=\$(nproc) \char92
+--keep-going --with-bdeps=y"
+
+\textcolor{comment}{## Set niceness to be more important:}
+#PORTAGE_NICENESS=-1
+
+\textcolor{comment}{## Features - greater parallelization:}
+FEATURES="parallel-install"
+
+\textcolor{comment}{## Gentoo Mirror:}
+GENTOO_MIRRORS="rsync://rsync.mirrorservice.org/distfiles.gentoo.org/"
+\textcolor{comment}{## Accept ONLY Free Software:}
+#ACCEPT_LICENSE="-* @FREE"
+
+\textcolor{comment}{## File /etc/portage/package.use takes precedence:}
+USE=""
+\end{Verbatim}
+\end{enumerate}
+
+\section{Chroot}
+\begin{enumerate}
+    \item \textbf{Mount all filesystems:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{mount} -t proc \textcolor{dir}{/proc/} <\textcolor{dir}{/mnt/proc/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/sys/} <\textcolor{dir}{/mnt/sys/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/sys/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/dev/} <\textcolor{dir}{/mnt/dev/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/dev/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --bind \textcolor{dir}{/run/} <\textcolor{dir}{/mnt/run/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-slave <\textcolor{dir}{/mnt/run/}>
+\end{Verbatim}
+    \item \textbf{Chroot:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{chroot} <\textcolor{dir}{/mnt/gentoo/}> \textcolor{file}{/bin/bash}
+\textcolor{root}{root#} \textcolor{command}{source} \textcolor{file}{/etc/profile}
+\textcolor{root}{root#} \textcolor{command}{export} PS1="(chroot) \$\{PS1\}"
+\end{Verbatim}
+    \item \textbf{Add DNS:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{echo} "nameserver 1.1.1.1" > \textcolor{file}{/etc/resolv.conf}
+\end{Verbatim}
+\end{enumerate}
+
+
 
 \end{document}
