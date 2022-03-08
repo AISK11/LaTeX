@@ -91,6 +91,7 @@
     \textbf{Hardware} & \textbf{Value} \\
     \hline
     Encryption & LUKS\\
+    RAID & no\\
     LVM & yes\\
     Root filesystem & btrfs\\
     Bootloader & rEFInd\\
@@ -110,10 +111,10 @@
     \begin{itemize}
         \item \textbf{General Gentoo download page:}
 \newline \url{https://www.gentoo.org/downloads/}
-        \item \textbf{Gentoo files from bouncer (image, stage3, signatures):}
-\newline \url{https://bouncer.gentoo.org/fetch/root/all/releases/amd64/autobuilds/current-install-amd64-minimal/}
         \item \textbf{Gentoo mirrors:}
 \newline \url{https://www.gentoo.org/downloads/mirrors/}
+        \item \textbf{Gentoo bouncer mirror:}
+\newline \url{https://bouncer.gentoo.org/fetch/root/all/releases/amd64/autobuilds/current-install-amd64-minimal/}
     \end{itemize}
     \item \textbf{Verify download: @todo}
 \end{enumerate}
@@ -254,7 +255,7 @@ Make sure, that Secure Boot is disabled!
 \textcolor{root}{cfdisk>} \textcolor{command}{W}
 \textcolor{root}{cfdisk>} \textcolor{command}{yes}
 \end{Verbatim}
-    \item \textbf{Quic cfdisk:}
+    \item \textbf{Quit cfdisk:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{cfdisk>} \textcolor{command}{Q}
 \end{Verbatim}
@@ -372,11 +373,11 @@ Make sure, that Secure Boot is disabled!
 \begin{enumerate}
     \item \textbf{Mount Gentoo:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> \textcolor{dir}{/mnt/gentoo/}
+\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> <\textcolor{dir}{/mnt/gentoo/}>
 \end{Verbatim}
     \item \textbf{Navigate to Gentoo install directory:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{cd} \textcolor{dir}{/mnt/gentoo/}
+\textcolor{root}{root#} \textcolor{command}{cd} <\textcolor{dir}{/mnt/gentoo/}>
 \end{Verbatim}
     \item \textbf{Download Stage3 (from DK mirror):}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -393,48 +394,11 @@ Make sure, that Secure Boot is disabled!
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{root#} \textcolor{command}{rm} -f <\textcolor{file}{./stage3-amd64-openrc-<release>.tar.xz}>
 \end{Verbatim}
-    \item \textbf{Gentoo ebuild repository:}
+    \item \textbf{Copy Gentoo ebuild repository:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mkdir} --parents \textcolor{dir}{/mnt/gentoo/etc/portage/repos.conf/}
+\textcolor{root}{root#} \textcolor{command}{mkdir} -p \textcolor{dir}{/mnt/gentoo/etc/portage/repos.conf/}
 \textcolor{root}{root#} \textcolor{command}{cp} \textcolor{file}{/mnt/gentoo/usr/share/portage/config/repos.conf}
 \textcolor{file}{/mnt/gentoo/etc/portage/repos.conf/gentoo.conf}
-\end{Verbatim}
-\end{enumerate}
-
-\section{Compile Options}
-\begin{enumerate}
-    \item \textbf{Configure compile options:}
-\newline File (\textbf{\textcolor{file}{/mnt/gentoo/etc/portage/make.conf}}):
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{comment}{## Do not use ’-march=native’ with distcc!}
-\textcolor{comment}{## Flags for C, C++, FORTRAN77 and FORTRAN applications:}
-CFLAGS="-march=native -O2 -pipe"
-CXXFLAGS="\$\{CFLAGS\}"
-FCFLAGS="\$\{CFLAGS\}"
-FFLAGS="\$\{CFLAGS\}"
-
-\textcolor{comment}{## Build output language (english):}
-LC_MESSAGES=C
-
-\textcolor{comment}{## Parallel "make" jobs = CPUs, load average:}
-MAKEOPTS="-j\$(nproc) -l\$(nproc)"
-\textcolor{comment}{## Default emerge options:}
-EMERGE_DEFAULT_OPTS="--jobs=\$(nproc) --load-average=\$(nproc) \char92
---keep-going --with-bdeps=y"
-
-\textcolor{comment}{## Set niceness to be more important:}
-#PORTAGE_NICENESS=-1
-
-\textcolor{comment}{## Features - greater parallelization:}
-FEATURES="parallel-install"
-
-\textcolor{comment}{## Gentoo Mirror:}
-GENTOO_MIRRORS="rsync://rsync.mirrorservice.org/distfiles.gentoo.org/"
-\textcolor{comment}{## Accept ONLY Free Software:}
-#ACCEPT_LICENSE="-* @FREE"
-
-\textcolor{comment}{## File /etc/portage/package.use takes precedence:}
-USE=""
 \end{Verbatim}
 \end{enumerate}
 
@@ -442,13 +406,13 @@ USE=""
 \begin{enumerate}
     \item \textbf{Mount all filesystems:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mount} -t proc \textcolor{dir}{/proc/} <\textcolor{dir}{/mnt/proc/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/sys/} <\textcolor{dir}{/mnt/sys/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/sys/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/dev/} <\textcolor{dir}{/mnt/dev/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/dev/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --bind \textcolor{dir}{/run/} <\textcolor{dir}{/mnt/run/}>
-\textcolor{root}{root#} \textcolor{command}{mount} --make-slave <\textcolor{dir}{/mnt/run/}>
+\textcolor{root}{root#} \textcolor{command}{mount} -t proc \textcolor{dir}{/proc/} <\textcolor{dir}{/mnt/gentoo/proc/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/sys/} <\textcolor{dir}{/mnt/gentoo/sys/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/gentoo/sys/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --rbind \textcolor{dir}{/dev/} <\textcolor{dir}{/mnt/gentoo/dev/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-rslave <\textcolor{dir}{/mnt/gentoo/dev/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --bind \textcolor{dir}{/run/} <\textcolor{dir}{/mnt/gentoo/run/}>
+\textcolor{root}{root#} \textcolor{command}{mount} --make-slave <\textcolor{dir}{/mnt/gentoo/run/}>
 \end{Verbatim}
     \item \textbf{Chroot:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -456,12 +420,100 @@ USE=""
 \textcolor{root}{root#} \textcolor{command}{source} \textcolor{file}{/etc/profile}
 \textcolor{root}{root#} \textcolor{command}{export} PS1="(chroot) \$\{PS1\}"
 \end{Verbatim}
+    \item \textbf{Mount boot partition:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{mount} <\textcolor{block}{/dev/sdX1}> \textcolor{dir}{/boot/}
+\end{Verbatim}
     \item \textbf{Add DNS:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{echo} "nameserver 1.1.1.1" > \textcolor{file}{/etc/resolv.conf}
+\textcolor{root}{(chroot) root#} \textcolor{command}{echo} "nameserver 1.1.1.1" > \textcolor{file}{/etc/resolv.conf}
 \end{Verbatim}
 \end{enumerate}
 
+\section{Configure Portage}
+\begin{enumerate}
+    \item \textbf{Find amount of available processing units:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{(chroot) user\$} \textcolor{command}{nproc}
+\end{Verbatim}
+    \item \textbf{Configure compile options:}
+\newline File (\textbf{\textcolor{file}{/mnt/gentoo/etc/portage/make.conf}}):
+\newline \url{https://github.com/AISK11/Gentoo/blob/main/configs/make.conf}
+\end{enumerate}
+
+\section{Recompile system}
+\begin{enumerate}
+    \item \textbf{Synchronize repository:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --sync
+\end{Verbatim}
+    \item \textbf{Read the news}
+    \begin{itemize}
+        \item \textbf{List all available news:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} news list
+\end{Verbatim}
+        \item \textbf{Read all/specific news:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} news read [N]
+\end{Verbatim}
+        \item \textbf{Purge all/specific news:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} news purge [N]
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Check selected profile:}
+\newline Profile has to match downloaded Stage3 tarball!
+    \begin{itemize}
+        \item \textbf{See current profile:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} profile list
+\end{Verbatim}
+        \item \textbf{Change profile:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} profile set <N>
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Update @world set:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask --verbose --update --deep --newuse @world
+\end{Verbatim}
+\end{enumerate}
+
+
+\chapter{Local Settings}
+\section{Hostname}
+\begin{itemize}
+    \item \textbf{Print hostname:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{hostname} [-f]
+\end{Verbatim}
+    \item \textbf{Change hostname:}
+\newline File (\textbf{\textcolor{file}{/etc/hostname}}):
+\begin{verbatim}
+<HOSTNAME>
+\end{verbatim}
+\end{itemize}
+
+\section{Time and Date}
+\begin{itemize}
+    \item \textbf{Show current timezone:}
+
+
+    \item \textbf{Change timezone:}
+\end{itemize}
+
+
+\section{Locales and Keyboard}
+
+
+
+\chapter{Portage}
+\begin{itemize}
+    \item eselect [news]
+    \item emerge
+    \item layman?
+\end{itemize}
 
 
 \end{document}
