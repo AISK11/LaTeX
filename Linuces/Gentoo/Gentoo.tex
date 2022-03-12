@@ -75,6 +75,7 @@
     CPU architecture & amd64\\
     CPU vendor & intel\\
     Motherboard & UEFI\\
+    Hard Drive & NVMe\\
     WiFi & iwlwifi\\
     GPU & Nvidia\\
     \hline
@@ -90,10 +91,11 @@
     \hline
     \textbf{Hardware} & \textbf{Value} \\
     \hline
-    Encryption & LUKS\\
     RAID & no\\
-    LVM & yes\\
+    LVM & no (btrfs)\\
+    Encryption & LUKS\\
     Root filesystem & btrfs\\
+    SWAP & 4GB\\
     Bootloader & rEFInd\\
     Init & runit\\
     Virtualization & Xen\\
@@ -149,16 +151,20 @@ Make sure, that Secure Boot is disabled!
 
 \chapter{Pre-Installation}
 \section{Verify UEFI}
-\begin{enumerate}
+\begin{itemize}
     \item \textbf{UEFI is used if following directory exists:}
 \newline \textbf{\textcolor{dir}{/sys/firmware/efi/}}
-\end{enumerate}
+    \item \textbf{Or verify via kernel:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{dmesg} | \textcolor{command}{grep} -i efi
+\end{Verbatim}
+\end{itemize}
 
 \section{Check Disk Sectors}
 \subsection{Theory}
 \begin{itemize}
     \item \textbf{Sector:} smallest unit size on disk. 512 or 4096 bytes.
-    \item \textbf{Block:} Allocation size the FS uses. Cannot be smaller than size of the sector. Can be group of sectors (4096b: 8 x 512b sectors).
+    \item \textbf{Block:} allocation size the FS uses. Cannot be smaller than size of the sector. Can be group of sectors (4096b: 8 x 512b sectors).
     \begin{itemize}
         \item \textbf{512b =} good for lot of small files. More blocks = more metadata.
         \item \textbf{4096b =}  good for larger files, less metadata. Waste if there are mostly small files.
@@ -213,12 +219,7 @@ Make sure, that Secure Boot is disabled!
 \section{Time Sync}
 \begin{enumerate}
     \item \textbf{Synchronize local time to correctly access internet:}
-    \begin{itemize}
-        \item \textbf{Manual:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{date} <MMDDhhmmYYYY>
-\end{Verbatim}
-    \end{itemize}
+\newline See section \ref{section:date}
 \end{enumerate}
 
 
@@ -314,11 +315,21 @@ Make sure, that Secure Boot is disabled!
 > YES
 \end{Verbatim}
     \end{enumerate}
+    \item \textbf{Passwords}
+    \begin{itemize}
+        \item \textbf{Change password:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} luksChangeKey <\textcolor{block}{/dev/sdX2}>
+> <OLD_PASSWORD>
+> <NEW_PASSWORD>
+> <NEW_PASSWORD (VERIFY)>
+\end{Verbatim}
+    \end{itemize}
 \end{itemize}
-\subsection{Encrypted LVM Partition}
+\subsection{Encrypted Partition}
 \begin{figure}[ht]
     \begin{center}
-        \includegraphics[width=115mm]{./src/img/lvm.png}
+        \includegraphics[width=115mm]{./src/img/btrfs.png}
         \caption{LVM structure.}
         \label{fig:1}
     \end{center}
@@ -339,6 +350,10 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
     \item \textbf{Create LVM Logical Volumes:}
     \begin{enumerate}
+        \item \textbf{SWAP volume (4GB):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{lvm} lvcreate -L 4G -n <swap> <vg0>
+\end{Verbatim}
         \item \textbf{Root Logical Volume:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{root#} \textcolor{command}{lvm} lvcreate -l 100\%FREE -n <root> <vg0>
@@ -361,10 +376,15 @@ Make sure, that Secure Boot is disabled!
     \end{itemize}
     \item \textbf{Format LVM Logical Volumes:}
     \begin{enumerate}
+        \item \textbf{SWAP partition:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{mkswap} [-L <LVM_SWAP>] <\textcolor{block}{/dev/mapper/vg0-swap}>
+\textcolor{root}{root#} \textcolor{command}{swapon} <\textcolor{block}{/dev/mapper/vg0-swap}>
+\end{Verbatim}
         \item \textbf{Root Partition:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mkfs.btrfs} <\textcolor{block}{/dev/vg0/root}>
-\textcolor{root}{root#} \textcolor{command}{btrfs} filesystem label <\textcolor{block}{/dev/vg0/root}> <LVM_ROOT>
+\textcolor{root}{root#} \textcolor{command}{mkfs.btrfs} <\textcolor{block}{/dev/mapper/vg0-root}>
+\textcolor{root}{root#} \textcolor{command}{btrfs} filesystem label <\textcolor{block}{/dev/mapper/vg0-root}> <LVM_ROOT>
 \end{Verbatim}
     \end{enumerate}
 \end{enumerate}
@@ -430,18 +450,22 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
 \end{enumerate}
 
-\section{Configure Portage}
+\section{Portage}
 \begin{enumerate}
     \item \textbf{Find amount of available processing units:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{user}{(chroot) user\$} \textcolor{command}{nproc}
 \end{Verbatim}
     \item \textbf{Configure compile options:}
-\newline File (\textbf{\textcolor{file}{/mnt/gentoo/etc/portage/make.conf}}):
+\newline File (\textbf{\textcolor{file}{/etc/portage/make.conf}}):
 \newline \url{https://github.com/AISK11/Gentoo/blob/main/configs/make.conf}
+    \item \textbf{Create per-package license exceptions file:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{touch} \textcolor{file}{/etc/portage/package.license}
+\end{Verbatim}
 \end{enumerate}
 
-\section{Recompile system}
+\section{System Recompilation}
 \begin{enumerate}
     \item \textbf{Synchronize repository:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -474,39 +498,293 @@ Make sure, that Secure Boot is disabled!
 \textcolor{root}{(chroot) root#} \textcolor{command}{eselect} profile set <N>
 \end{Verbatim}
     \end{itemize}
-    \item \textbf{Update @world set:}
+    \item \textbf{Compile full system:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask --verbose --update --deep --newuse @world
 \end{Verbatim}
 \end{enumerate}
 
+\section{Local System Settings}
+See section \ref{section:local_settings}
 
-\chapter{Local Settings}
+\section{Fstab}
+\begin{enumerate}
+    \item \textbf{Find UUIDs for block devices:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{blkid}
+\end{Verbatim}
+    \item \textbf{Configure fstab:}
+\newline File (\textbf{\textcolor{file}{/etc/fstab}}):
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{comment}{## <disk UUID>         <mount>   <fs>  <options>     <dump> <pass>}
+UUID=<UUID_(sdX1)>     /boot/    vfat  umask=0077              0 1
+UUID=<UUID_(vg0-swap)> none      swap  sw                      0 0
+UUID=<UUID_(vg0-root)> /         btrfs defaults,noatime,nofail 0 0
+\end{Verbatim}
+\end{enumerate}
+
+\section{System Packages}
+\begin{enumerate}
+    \item \textbf{Intel Microcode + Basic firmware (AMD microcode + iwlwifi):}
+\newline File (\textbf{\textcolor{file}{/etc/portage/package.license}}):
+\begin{Verbatim}[commandchars=\\\{\}]
+sys-firmware/intel-microcode @BINARY-REDISTRIBUTABLE
+sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
+\end{Verbatim}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-firmware/intel-microcode
+sys-kernel/linux-firmware
+\end{Verbatim}
+    \item \textbf{Filesystems (FAT32, LUKS, LVM2, BTRFS):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-fs/dosfstools sys-fs/cryptsetup
+sys-fs/lvm2 sys-fs/btrfs-progs
+\end{Verbatim}
+    \item \textbf{UEFI:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-boot/efibootmgr sys-boot/refind
+\end{Verbatim}
+    \item \textbf{Init system (runit):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-process/runit
+\end{Verbatim}
+    \item \textbf{Network:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask net-misc/dhcpcd net-wireless/wpa_supplicant
+\end{Verbatim}
+\end{enumerate}
+
+\section{Kernel}
+\url{https://www.kernelconfig.io}
+\begin{enumerate}
+    \item \textbf{Install kernel source:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-kernel/gentoo-sources
+\end{Verbatim}
+    \item \textbf{Install initramfs:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-kernel/dracut
+\end{Verbatim}
+    \item \textbf{Create linux kernel symlink:}
+    \begin{enumerate}
+        \item \textbf{List available kernels:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} kernel list
+\end{Verbatim}
+        \item \textbf{Create symlink}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{eselect} kernel set <1>
+\end{Verbatim}
+    \end{enumerate}
+    \item \textbf{Enter kernel configuration:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{cd} \textcolor{dir}{/usr/src/linux/} && \textcolor{command}{make} menuconfig
+\end{Verbatim}
+    \item \textbf{Configure kernel}
+    \begin{enumerate}
+        \item \textbf{CPU:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Processor type and features --->
+   [*] Intel MCE features
+   [ ] AMD MCE features
+   [*] CPU microcode loading support
+   [*]   Intel microcode loading support
+   [ ]   AMD microcode loading support
+\end{Verbatim}
+        \item \textbf{Hard Drive:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Device Drivers →
+  NVME Support →
+    <*> NVM Express block device
+\end{Verbatim}
+        \item \textbf{RAID:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Device Drivers  --->
+   Multiple devices driver support (RAID and LVM)  --->
+       < > RAID support
+\end{Verbatim}
+    \item \textbf{GPT}
+\begin{Verbatim}[commandchars=\\\{\}]
+-*- Enable the block layer --->
+   Partition Types --->
+      [ ] PC BIOS (MSDOS) partition tables) support
+      [*] Advanced partition selection
+      [*] EFI GUID Partition support
+\end{Verbatim}
+        \item \textbf{LVM:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Device Drivers  --->
+   Multiple devices driver support (RAID and LVM)  --->
+       <*> Device mapper support
+           <*> Crypt target support
+           <*> Snapshot target
+           <*> Mirror target
+           <*> Multipath target
+               <*> I/O Path Selector based on the number of in-flight I/Os
+               <*> I/O Path Selector based on the service time
+\end{Verbatim}
+        \item \textbf{LUKS:}
+\begin{Verbatim}[commandchars=\\\{\}]
+[*] Cryptographic API --->
+    <*> XTS support
+    <*> User-space interface for hash algorithms
+    <*> User-space interface for symmetric key cipher algorithms
+\end{Verbatim}
+        \item \textbf{Filesystems:}
+\begin{Verbatim}[commandchars=\\\{\}]
+File systems --->
+  < > Second extended fs support
+  < > The Extended 3 (ext3) filesystem
+  <*> The Extended 4 (ext4) filesystem
+  < > XFS filesystem support
+  <*> Btrfs filesystem support
+  DOS/FAT/EXFAT/NT Filesystems  --->
+    <*> MSDOS fs support
+    <*> VFAT (Windows-95) fs support
+\end{Verbatim}
+        \item \textbf{WiFi:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Device Drivers  --->
+        [*] Network device support  --->
+        --- Network device support
+        [*]   Wireless LAN  --->
+            --- Wireless LAN
+            <M>     Intel Wireless WiFi Next Gen AGN -
+                    Wireless-N/Advanced-N/Ultimate-N (iwlwifi)
+            <M>     Intel Wireless WiFi DVM Firmware support
+            <M>     Intel Wireless WiFi MVM Firmware support
+\end{Verbatim}
+    \end{enumerate}
+    \item \textbf{Compile kernel:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{cd} \textcolor{dir}{/usr/src/linux/} && \textcolor{command}{make} && \textcolor{command}{make} modules_install
+\end{Verbatim}
+    \item \textbf{Copy kernel to boot dir:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{cd} \textcolor{dir}{/usr/src/linux/} && \textcolor{command}{make} install
+\end{Verbatim}
+\end{enumerate}
+
+
+\chapter{Local Settings WIP}
+\label{section:local_settings}
 \section{Hostname}
 \begin{itemize}
-    \item \textbf{Print hostname:}
+    \item \textbf{Print [full] hostname:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{user}{user\$} \textcolor{command}{hostname} [-f]
 \end{Verbatim}
     \item \textbf{Change hostname:}
+    \begin{enumerate}
+        \item \textbf{Change hostname permanently:}
 \newline File (\textbf{\textcolor{file}{/etc/hostname}}):
 \begin{verbatim}
 <HOSTNAME>
 \end{verbatim}
+    \item \textbf{Reboot PC to take effect:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{reboot}
+\end{Verbatim}
+    \end{enumerate}
 \end{itemize}
 
-\section{Time and Date}
+\section{Date \& Time}
+\subsection{Timezone}
 \begin{itemize}
     \item \textbf{Show current timezone:}
-
-
+\newline Has to be created during installation.
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{cat} \textcolor{file}{/etc/timezone}
+\end{Verbatim}
     \item \textbf{Change timezone:}
+    \begin{enumerate}
+        \item \textbf{See available timezones:}
+\newline Directory (\textbf{\textcolor{dir}{/usr/share/zoneinfo/}}).
+        \item \textbf{Set timezone:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{echo} "<Europe/Copenhagen>" > \textcolor{file}{/etc/timezone}
+\textcolor{root}{root#} \textcolor{command}{emerge} --config sys-libs/timezone-data
+\end{Verbatim}
+    \end{enumerate}
+\end{itemize}
+\subsection{System Clock}
+\label{section:date}
+\begin{itemize}
+    \item \textbf{Show system time:}
+    \begin{itemize}
+        \item \textbf{Default:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{date}
+\end{Verbatim}
+        \item \textbf{ISO 8601 (YYYY-MM-DDThh:mm:ss(+|-)xx:xx):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{date} +'\%Y-\%m-\%dT\%H:\%M:\%S\%:z'
+\end{Verbatim}
+    \end{itemize}
+    \item \textbf{Set system time:}
+    \begin{itemize}
+        \item \textbf{Manually:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{date} <MMDDhhmmYYYY>
+\end{Verbatim}
+        \item \textbf{With NTP/PTP @todo}
+    \end{itemize}
+\end{itemize}
+\subsection{Hardware Clock (RTC)}
+\begin{itemize}
+    \item \textbf{Display RTC:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{hwclock}
+\end{Verbatim}
+    \item \textbf{Update RTC with system clock:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{hwclock} --systohc
+\end{Verbatim}
 \end{itemize}
 
+\section{Locales}
+\begin{itemize}
+    \item \textbf{See locales:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{locale}
+\end{Verbatim}
+    \item \textbf{Set locales:}
+    \begin{enumerate}
+        \item \textbf{List available locales:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{cat} \textcolor{file}{/usr/share/i18n/SUPPORTED}
+\end{Verbatim}
+        \item \textbf{Generate locales:}
+\newline File (\textbf{\textcolor{file}{/etc/locale-gen}}):
+\newline \url{https://github.com/AISK11/Gentoo/blob/main/configs/locale-gen}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{locale-gen}
+\end{Verbatim}
+    \item \textbf{List available generated locales:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{user}{user\$} \textcolor{command}{locale} -a
+\end{Verbatim}
+    \item \textbf{Set system locales:}
+\newline File (\textbf{\textcolor{file}{/etc/env.d/02locale}}):
+\newline \url{https://github.com/AISK11/Gentoo/blob/main/configs/02locale}
+    \item \textbf{Use changed locales:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{env-update} && \textcolor{command}{source} \textcolor{file}{/etc/profile}
+\end{Verbatim}
+    \end{enumerate}
+\end{itemize}
 
-\section{Locales and Keyboard}
-
-
+\section{Console Keyboard}
+\begin{enumerate}
+    \item \textbf{See all available keyboards:}
+\newline File (\textbf{\textcolor{file}{/etc/env.d/02locale}}):
+\newline Directory (\textbf{\textcolor{dir}{/usr/share/keymaps/i386/}}).
+    \item \textbf{Set keyboard:}
+\newline File: (\textbf{\textcolor{file}{/etc/conf.d/keymaps}}):
+\begin{verbatim}
+keymap="us"
+\end{verbatim}
+\end{enumerate}
 
 \chapter{Portage}
 \begin{itemize}
@@ -515,5 +793,29 @@ Make sure, that Secure Boot is disabled!
     \item layman?
 \end{itemize}
 
+
+% https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Base
+% https://wiki.gentoo.org/wiki/Localization/Guide#Environment_variables_for_locales
+% https://wiki.archlinux.org/title/Locale
+% https://www.gnu.org/software/libc/manual/html_node/Locale-Categories.html#index-LC_005fTIME
+
+
+
+
+
+% ToDo:
+% Locale + CLI keyboard, font, etc
+% Kernel + initramfs
+% efibootmgr + rEFInd
+% runit
+% ZSH
+% xen
+% SELINUX
+% hardened kernel
+
+% Networking
+% Portage + Pentoo
+
+% System hardening (nftables, usbguard, no motd, ulimits, ...)
 
 \end{document}
