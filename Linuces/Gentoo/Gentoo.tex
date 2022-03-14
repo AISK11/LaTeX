@@ -95,7 +95,7 @@
     LVM & no (btrfs)\\
     Encryption & LUKS\\
     Root filesystem & btrfs\\
-    SWAP & 4GB\\
+    SWAP & 4GB (partition) @todo\\
     Bootloader & rEFInd\\
     Init & runit\\
     Virtualization & Xen\\
@@ -154,7 +154,7 @@ Make sure, that Secure Boot is disabled!
 \begin{itemize}
     \item \textbf{UEFI is used if following directory exists:}
 \newline \textbf{\textcolor{dir}{/sys/firmware/efi/}}
-    \item \textbf{Or verify via kernel:}
+    \item \textbf{Verify via kernel:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{root#} \textcolor{command}{dmesg} | \textcolor{command}{grep} -i efi
 \end{Verbatim}
@@ -163,7 +163,7 @@ Make sure, that Secure Boot is disabled!
 \section{Check Disk Sectors}
 \subsection{Theory}
 \begin{itemize}
-    \item \textbf{Sector:} smallest unit size on disk. 512 or 4096 bytes.
+    \item \textbf{Sector:} smallest unit size on disk. 512 or 4096 bytes (Advanced Format). 4096 Advanced Format disks have usually 512-byte conversion firmware.
     \item \textbf{Block:} allocation size the FS uses. Cannot be smaller than size of the sector. Can be group of sectors (4096b: 8 x 512b sectors).
     \begin{itemize}
         \item \textbf{512b =} good for lot of small files. More blocks = more metadata.
@@ -181,13 +181,17 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
     \item \textbf{Get raw disk info:}
     \begin{itemize}
+        \item \textbf{Get disk physical sector size:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{blockdev} [-v] --getpbsz <\textcolor{block}{/dev/sdX[Y]}>
+\end{Verbatim}
+        \item \textbf{Get disk logical sector size (usually 512):}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{root#} \textcolor{command}{blockdev} [-v] --getss <\textcolor{block}{/dev/sdX[Y]}>
+\end{Verbatim}
         \item \textbf{Disk size in bytes:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{root#} \textcolor{command}{blockdev} [-v] --getsize64 <\textcolor{block}{/dev/sdX[Y]}>
-\end{Verbatim}
-    \item \textbf{Disk block size in bytes:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{blockdev} [-v] --getbsz <\textcolor{block}{/dev/sdX[Y]}>
 \end{Verbatim}
     \item \textbf{Check if disk is readonly (1 = ro, 0 = rw):}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -225,6 +229,14 @@ Make sure, that Secure Boot is disabled!
 
 \chapter{Installation}
 \section{Disk Partitioning}
+\begin{figure}[ht]
+    \begin{center}
+        \includegraphics[width=40mm]{./src/img/gpt1.png}
+        \includegraphics[width=75mm]{./src/img/gpt2.png}
+        \caption{GPT Partition Table.}
+        \label{fig:1}
+    \end{center}
+\end{figure}
 \subsection{Partition Table}
 \begin{enumerate}
     \item \textbf{Unmount FS!}
@@ -249,7 +261,7 @@ Make sure, that Secure Boot is disabled!
     \item \textbf{Create encrypted partition:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{cfdisk>} \textcolor{command}{n}
-\textcolor{root}{cfdisk>} \textcolor{command}{ } (Enter)
+\textcolor{root}{cfdisk>} \textcolor{command}{} (Enter)
 \end{Verbatim}
     \item \textbf{Write changes:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -329,71 +341,29 @@ Make sure, that Secure Boot is disabled!
 \subsection{Encrypted Partition}
 \begin{figure}[ht]
     \begin{center}
-        \includegraphics[width=115mm]{./src/img/btrfs.png}
-        \caption{LVM structure.}
+        \includegraphics[width=75mm]{./src/img/btrfs.png}
+        \caption{Btrfs structure.}
         \label{fig:1}
     \end{center}
 \end{figure}
 \begin{enumerate}
     \item \textbf{Open encrypted partition:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{cryptsetup} open --type luks <\textcolor{block}{/dev/sdX2}> <luks_lvm>
+\textcolor{root}{root#} \textcolor{command}{cryptsetup} open --type luks <\textcolor{block}{/dev/sdX2}> <luks>
 > <PASSWORD>
 \end{Verbatim}
-    \item \textbf{Create LVM Physical Volume:}
+    \item \textbf{Format root partition:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} pvcreate <\textcolor{block}{/dev/mapper/luks_lvm}>
+\textcolor{root}{root#} \textcolor{command}{mkfs.btrfs} <\textcolor{block}{/dev/mapper/luks}>
+\textcolor{root}{root#} \textcolor{command}{btrfs} filesystem label <\textcolor{block}{/dev/mapper/luks}> <GENTOO>
 \end{Verbatim}
-    \item \textbf{Create LVM Volume Group:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} vgcreate <vg0> <\textcolor{block}{/dev/mapper/luks_lvm}>
-\end{Verbatim}
-    \item \textbf{Create LVM Logical Volumes:}
-    \begin{enumerate}
-        \item \textbf{SWAP volume (4GB):}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} lvcreate -L 4G -n <swap> <vg0>
-\end{Verbatim}
-        \item \textbf{Root Logical Volume:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} lvcreate -l 100\%FREE -n <root> <vg0>
-\end{Verbatim}
-    \end{enumerate}
-    \item \textbf{Verify LVM}
-    \begin{itemize}
-        \item \textbf{Check LVM Physical Volumes:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} pvdisplay
-\end{Verbatim}
-        \item \textbf{Check LVM Volume Groups:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} vgdisplay [vg0]
-\end{Verbatim}
-        \item \textbf{Check LVM Logical Volumes:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{lvm} lvdisplay
-\end{Verbatim}
-    \end{itemize}
-    \item \textbf{Format LVM Logical Volumes:}
-    \begin{enumerate}
-        \item \textbf{SWAP partition:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mkswap} [-L <LVM_SWAP>] <\textcolor{block}{/dev/mapper/vg0-swap}>
-\textcolor{root}{root#} \textcolor{command}{swapon} <\textcolor{block}{/dev/mapper/vg0-swap}>
-\end{Verbatim}
-        \item \textbf{Root Partition:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mkfs.btrfs} <\textcolor{block}{/dev/mapper/vg0-root}>
-\textcolor{root}{root#} \textcolor{command}{btrfs} filesystem label <\textcolor{block}{/dev/mapper/vg0-root}> <LVM_ROOT>
-\end{Verbatim}
-    \end{enumerate}
 \end{enumerate}
 
 \section{Stage3}
 \begin{enumerate}
     \item \textbf{Mount Gentoo:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/vg0-root}> <\textcolor{dir}{/mnt/gentoo/}>
+\textcolor{root}{root#} \textcolor{command}{mount} <\textcolor{block}{/dev/mapper/luks}> <\textcolor{dir}{/mnt/gentoo/}>
 \end{Verbatim}
     \item \textbf{Navigate to Gentoo install directory:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -504,25 +474,6 @@ Make sure, that Secure Boot is disabled!
 \end{Verbatim}
 \end{enumerate}
 
-\section{Local System Settings}
-See section \ref{section:local_settings}
-
-\section{Fstab}
-\begin{enumerate}
-    \item \textbf{Find UUIDs for block devices:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{blkid}
-\end{Verbatim}
-    \item \textbf{Configure fstab:}
-\newline File (\textbf{\textcolor{file}{/etc/fstab}}):
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{comment}{## <disk UUID>         <mount>   <fs>  <options>     <dump> <pass>}
-UUID=<UUID_(sdX1)>     /boot/    vfat  umask=0077              0 1
-UUID=<UUID_(vg0-swap)> none      swap  sw                      0 0
-UUID=<UUID_(vg0-root)> /         btrfs defaults,noatime,nofail 0 0
-\end{Verbatim}
-\end{enumerate}
-
 \section{System Packages}
 \begin{enumerate}
     \item \textbf{Intel Microcode + Basic firmware (AMD microcode + iwlwifi):}
@@ -533,12 +484,12 @@ sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
 \end{Verbatim}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-firmware/intel-microcode
-sys-kernel/linux-firmware
+sys-kernel/linux-firmware app-admin/mcelog
 \end{Verbatim}
     \item \textbf{Filesystems (FAT32, LUKS, LVM2, BTRFS):}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-fs/dosfstools sys-fs/cryptsetup
-sys-fs/lvm2 sys-fs/btrfs-progs
+sys-fs/btrfs-progs
 \end{Verbatim}
     \item \textbf{UEFI:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -546,11 +497,26 @@ sys-fs/lvm2 sys-fs/btrfs-progs
 \end{Verbatim}
     \item \textbf{Init system (runit):}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-process/runit
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-apps/openrc sys-process/runit
 \end{Verbatim}
     \item \textbf{Network:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask net-misc/dhcpcd net-wireless/wpa_supplicant
+\end{Verbatim}
+\end{enumerate}
+
+\section{Fstab}
+\begin{enumerate}
+    \item \textbf{Find UUIDs for block devices:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{blkid}
+\end{Verbatim}
+    \item \textbf{Configure fstab:}
+\newline File (\textbf{\textcolor{file}{/etc/fstab}}):
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{comment}{## <disk UUID>                <mount>   <fs>  <options>     <dump> <pass>}
+UUID=<UUID_/dev/sdX1>         /boot/    vfat  umask=0077              0 1
+UUID=<UUID_/dev/mappper/luks> /         btrfs defaults,noatime,nofail 0 0
 \end{Verbatim}
 \end{enumerate}
 
@@ -582,14 +548,41 @@ sys-fs/lvm2 sys-fs/btrfs-progs
 \end{Verbatim}
     \item \textbf{Configure kernel}
     \begin{enumerate}
+\item \textbf{Gentoo:}
+\begin{Verbatim}[commandchars=\\\{\}]
+Gentoo Linux --->
+  Generic Driver Options --->
+    [*] Gentoo Linux support
+    [*]   Linux dynamic and persistent device naming
+          (userspace devfs) support
+    [*]   Select options required by Portage features
+        Support for init systems, system and service
+        managers  --->
+          [*] OpenRC, runit and other script based
+              systems and managers
+          [ ] systemd
+
+Device Drivers --->
+  Generic Driver Options --->
+    -*- Maintain a devtmpfs filesystem to mount at /dev
+    [*]   Automount devtmpfs at /dev, after the kernel
+          mounted the rootfs
+   SCSI device support  --->
+      <*> SCSI disk support
+\end{Verbatim}
         \item \textbf{CPU:}
 \begin{Verbatim}[commandchars=\\\{\}]
-Processor type and features --->
-   [*] Intel MCE features
-   [ ] AMD MCE features
-   [*] CPU microcode loading support
-   [*]   Intel microcode loading support
-   [ ]   AMD microcode loading support
+Processor type and features  --->
+  [*] Symmetric multi-processing support
+  [*] Machine Check / overheating reporting
+  [*]   Intel MCE features
+  [ ]   AMD MCE features
+  [*] CPU microcode loading support
+  [*]   Intel microcode loading support
+  [ ]   AMD microcode loading support
+
+Binary Emulations --->
+   [*] IA32 Emulation
 \end{Verbatim}
         \item \textbf{Hard Drive:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -597,21 +590,84 @@ Device Drivers →
   NVME Support →
     <*> NVM Express block device
 \end{Verbatim}
-        \item \textbf{RAID:}
+    \item \textbf{GPT:}
+\begin{Verbatim}[commandchars=\\\{\}]
+-*- Enable the block layer --->
+   Partition Types --->
+      [*] Advanced partition selection
+      [ ] PC BIOS (MSDOS) partition tables) support
+      [*] EFI GUID Partition support
+\end{Verbatim}
+        \item \textbf{Filesystems:}
+\begin{Verbatim}[commandchars=\\\{\}]
+File systems --->
+  < > The Extended 4 (ext4) filesystem
+  <*> Btrfs filesystem support
+  DOS/FAT/EXFAT/NT Filesystems  --->
+    <*> MSDOS fs support
+    <*> VFAT (Windows-95) fs support
+\end{Verbatim}
+        \item \textbf{UEFI bootloader: WIP}
+\begin{Verbatim}[commandchars=\\\{\}]
+Processor type and features  --->
+    [*] EFI runtime service support
+    [*]   EFI stub support
+    [*]     EFI mixed-mode support
+
+Device Drivers
+    Firmware Drivers  --->
+        EFI (Extensible Firmware Interface) Support  --->
+            <*> EFI Variable Support via sysfs
+??
+File systems  --->
+   Pseudo filesystems  --->
+       <*> EFI Variable filesystem
+
+Device Drivers --->
+   Graphics support --->
+      Frame buffer Devices --->
+         <*> Support for frame buffer devices --->
+            [*] EFI-based Framebuffer Support
+
+/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
+Processor type and features  --->
+    [*] EFI runtime service support
+    [*]   EFI stub support
+    [ ]     EFI mixed-mode support
+    ...
+    ...
+    [*] Built-in kernel command line
+    (root=PARTUUID=<UUID_/dev/mappper/luks>)
+
+File systems  --->
+   Pseudo filesystems  --->
+       <*> EFI Variable filesystem
+
+Device Drivers --->
+   Graphics support --->
+      Frame buffer Devices --->
+         <*> Support for frame buffer devices --->
+            [*] EFI-based Framebuffer Support
+
+root# refind-install
+
+Processor type and features  --->
+    [*] EFI runtime service support
+    [*]   EFI stub support
+    [*]     EFI mixed-mode support
+
+Device Drivers
+    Firmware Drivers  --->
+        EFI (Extensible Firmware Interface) Support  --->
+            <*> EFI Variable Support via sysfs
+\end{Verbatim}
+        \item \textbf{RAID: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
 Device Drivers  --->
    Multiple devices driver support (RAID and LVM)  --->
        < > RAID support
 \end{Verbatim}
-    \item \textbf{GPT}
-\begin{Verbatim}[commandchars=\\\{\}]
--*- Enable the block layer --->
-   Partition Types --->
-      [ ] PC BIOS (MSDOS) partition tables) support
-      [*] Advanced partition selection
-      [*] EFI GUID Partition support
-\end{Verbatim}
-        \item \textbf{LVM:}
+        \item \textbf{LVM: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
 Device Drivers  --->
    Multiple devices driver support (RAID and LVM)  --->
@@ -623,36 +679,46 @@ Device Drivers  --->
                <*> I/O Path Selector based on the number of in-flight I/Os
                <*> I/O Path Selector based on the service time
 \end{Verbatim}
-        \item \textbf{LUKS:}
+        \item \textbf{LUKS: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
 [*] Cryptographic API --->
     <*> XTS support
     <*> User-space interface for hash algorithms
     <*> User-space interface for symmetric key cipher algorithms
 \end{Verbatim}
-        \item \textbf{Filesystems:}
+        \item \textbf{USB:}
 \begin{Verbatim}[commandchars=\\\{\}]
-File systems --->
-  < > Second extended fs support
-  < > The Extended 3 (ext3) filesystem
-  <*> The Extended 4 (ext4) filesystem
-  < > XFS filesystem support
-  <*> Btrfs filesystem support
-  DOS/FAT/EXFAT/NT Filesystems  --->
-    <*> MSDOS fs support
-    <*> VFAT (Windows-95) fs support
+Device Drivers --->
+  HID support  --->
+    -*- HID bus support
+    <*>   Generic HID driver
+    [*]   Battery level reporting for HID devices
+      USB HID support  --->
+        <*> USB HID transport layer
+  [*] USB support  --->
+    <*>     xHCI HCD (USB 3.0) support
+    <*>     EHCI HCD (USB 2.0) support
+    <*>     OHCI HCD (USB 1.1) support
 \end{Verbatim}
-        \item \textbf{WiFi:}
+        \item \textbf{WiFi: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
+[*] Networking support  --->
+    [*] Wireless  --->
+        <M>   cfg80211 - wireless configuration API
+        [*]     enable powersave by default
+        <M>   Generic IEEE 802.11 Networking Stack (mac80211)
+        -*-   Enable LED triggers
+
 Device Drivers  --->
         [*] Network device support  --->
         --- Network device support
         [*]   Wireless LAN  --->
             --- Wireless LAN
+            [*]   Intel devices
             <M>     Intel Wireless WiFi Next Gen AGN -
                     Wireless-N/Advanced-N/Ultimate-N (iwlwifi)
-            <M>     Intel Wireless WiFi DVM Firmware support
-            <M>     Intel Wireless WiFi MVM Firmware support
+            <M>       Intel Wireless WiFi DVM Firmware support
+            <M>       Intel Wireless WiFi MVM Firmware support
 \end{Verbatim}
     \end{enumerate}
     \item \textbf{Compile kernel:}
@@ -664,6 +730,37 @@ Device Drivers  --->
 \textcolor{root}{(chroot) root#} \textcolor{command}{cd} \textcolor{dir}{/usr/src/linux/} && \textcolor{command}{make} install
 \end{Verbatim}
 \end{enumerate}
+
+\section{Initramfs WIP}
+\begin{enumerate}
+    \item \textbf{Find compiled kernels:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{ls} \textcolor{dir}{/boot/}
+\end{Verbatim}
+    \item \textbf{List all available modules:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{dracut} --kver <5.15.26-gentoo> --list-modules
+\end{Verbatim}
+    \item \textbf{Generate initramfs [and show included modules]:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{dracut} --kver <5.15.26-gentoo> --early-microcode -f
+[-M 2> \textcolor{block}{/dev/null}]
+\end{Verbatim}
+\end{enumerate}
+
+\section{Bootloader}
+\begin{enumerate}
+    \item \textbf{Boot process:}
+\newline \menu[,]{Power Button, POST, Boots disk with ESP, EFI boots .efi application, [rEFInd], kernel + initramfs}
+    \item \textbf{System must be booted fro UEFI!}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{dmesg} | \textcolor{command}{grep} -i efi
+\end{Verbatim}
+    \item \textbf{}
+\end{enumerate}
+
+\section{Local System Settings}
+See section \ref{section:local_settings}
 
 
 \chapter{Local Settings WIP}
@@ -817,5 +914,8 @@ keymap="us"
 % Portage + Pentoo
 
 % System hardening (nftables, usbguard, no motd, ulimits, ...)
+
+\section{Help Me}
+\url{https://forums.gentoo.org/viewtopic-t-1147683.html}
 
 \end{document}
