@@ -470,38 +470,38 @@ Make sure, that Secure Boot is disabled!
     \end{itemize}
     \item \textbf{Compile full system:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask --verbose --update --deep --newuse @world
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a --verbose --update --deep --newuse @world
 \end{Verbatim}
 \end{enumerate}
 
 \section{System Packages}
 \begin{enumerate}
-    \item \textbf{Intel Microcode + Basic firmware (AMD microcode + iwlwifi):}
+    \item \textbf{Intel Microcode + Basic firmware (Intel microcode + iwlwifi):}
 \newline File (\textbf{\textcolor{file}{/etc/portage/package.license}}):
 \begin{Verbatim}[commandchars=\\\{\}]
 sys-firmware/intel-microcode @BINARY-REDISTRIBUTABLE
 sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE
 \end{Verbatim}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-firmware/intel-microcode
-sys-kernel/linux-firmware app-admin/mcelog
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a sys-firmware/intel-microcode
+sys-kernel/linux-firmware [app-admin/mcelog]
 \end{Verbatim}
     \item \textbf{Filesystems (FAT32, LUKS, LVM2, BTRFS):}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-fs/dosfstools sys-fs/cryptsetup
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a sys-fs/dosfstools sys-fs/cryptsetup
 sys-fs/btrfs-progs
 \end{Verbatim}
     \item \textbf{UEFI:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-boot/efibootmgr sys-boot/refind
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a sys-boot/efibootmgr sys-boot/refind
 \end{Verbatim}
-    \item \textbf{Init system (runit):}
+    \item \textbf{Kernel + initramfs:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-apps/openrc sys-process/runit
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a sys-kernel/gentoo-sources sys-kernel/dracut
 \end{Verbatim}
     \item \textbf{Network:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask net-misc/dhcpcd net-wireless/wpa_supplicant
+\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} -a net-misc/dhcpcd net-wireless/wpa_supplicant
 \end{Verbatim}
 \end{enumerate}
 
@@ -520,17 +520,8 @@ UUID=<UUID_/dev/mappper/luks> /         btrfs defaults,noatime,nofail 0 0
 \end{Verbatim}
 \end{enumerate}
 
-\section{Kernel}
-\url{https://www.kernelconfig.io}
+\section{Kernel WIP}
 \begin{enumerate}
-    \item \textbf{Install kernel source:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-kernel/gentoo-sources
-\end{Verbatim}
-    \item \textbf{Install initramfs:}
-\begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{emerge} --ask sys-kernel/dracut
-\end{Verbatim}
     \item \textbf{Create linux kernel symlink:}
     \begin{enumerate}
         \item \textbf{List available kernels:}
@@ -547,48 +538,49 @@ UUID=<UUID_/dev/mappper/luks> /         btrfs defaults,noatime,nofail 0 0
 \textcolor{root}{(chroot) root#} \textcolor{command}{cd} \textcolor{dir}{/usr/src/linux/} && \textcolor{command}{make} menuconfig
 \end{Verbatim}
     \item \textbf{Configure kernel}
+\newline \url{https://www.kernelconfig.io}
     \begin{enumerate}
 \item \textbf{Gentoo:}
 \begin{Verbatim}[commandchars=\\\{\}]
 Gentoo Linux --->
-  Generic Driver Options --->
-    [*] Gentoo Linux support
-    [*]   Linux dynamic and persistent device naming
+   Generic Driver Options --->
+      [*] Gentoo Linux support
+      [*]   Linux dynamic and persistent device naming
           (userspace devfs) support
-    [*]   Select options required by Portage features
+      [*]   Select options required by Portage features
         Support for init systems, system and service
         managers  --->
-          [*] OpenRC, runit and other script based
+           [*] OpenRC, runit and other script based
               systems and managers
-          [ ] systemd
+           [ ] systemd
 
 Device Drivers --->
-  Generic Driver Options --->
-    -*- Maintain a devtmpfs filesystem to mount at /dev
-    [*]   Automount devtmpfs at /dev, after the kernel
+   Generic Driver Options --->
+      -*- Maintain a devtmpfs filesystem to mount at /dev
+      [*]   Automount devtmpfs at /dev, after the kernel
           mounted the rootfs
-   SCSI device support  --->
-      <*> SCSI disk support
+      SCSI device support  --->
+         <*> SCSI disk support
 \end{Verbatim}
         \item \textbf{CPU:}
 \begin{Verbatim}[commandchars=\\\{\}]
 Processor type and features  --->
-  [*] Symmetric multi-processing support
-  [*] Machine Check / overheating reporting
-  [*]   Intel MCE features
-  [ ]   AMD MCE features
-  [*] CPU microcode loading support
-  [*]   Intel microcode loading support
-  [ ]   AMD microcode loading support
+   [*] Symmetric multi-processing support
+   [*] Machine Check / overheating reporting
+   [*]   Intel MCE features
+   [ ]   AMD MCE features
+   [*] CPU microcode loading support
+   [*]   Intel microcode loading support
+   [ ]   AMD microcode loading support
 
 Binary Emulations --->
    [*] IA32 Emulation
 \end{Verbatim}
         \item \textbf{Hard Drive:}
 \begin{Verbatim}[commandchars=\\\{\}]
-Device Drivers →
-  NVME Support →
-    <*> NVM Express block device
+Device Drivers --->
+   NVME Support --->
+      <*> NVM Express block device
 \end{Verbatim}
     \item \textbf{GPT:}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -601,65 +593,62 @@ Device Drivers →
         \item \textbf{Filesystems:}
 \begin{Verbatim}[commandchars=\\\{\}]
 File systems --->
-  < > The Extended 4 (ext4) filesystem
-  <*> Btrfs filesystem support
-  DOS/FAT/EXFAT/NT Filesystems  --->
-    <*> MSDOS fs support
-    <*> VFAT (Windows-95) fs support
+   < > The Extended 4 (ext4) filesystem
+   <*> Btrfs filesystem support
+   DOS/FAT/EXFAT/NT Filesystems  --->
+     <*> MSDOS fs support
+     <*> VFAT (Windows-95) fs support
 \end{Verbatim}
         \item \textbf{UEFI bootloader: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
 Processor type and features  --->
-    [*] EFI runtime service support
-    [*]   EFI stub support
-    [*]     EFI mixed-mode support
+   [*] EFI runtime service support
+   [*]   EFI stub support
+   [*]     EFI mixed-mode support
 
-Device Drivers
-    Firmware Drivers  --->
-        EFI (Extensible Firmware Interface) Support  --->
-            <*> EFI Variable Support via sysfs
+Device Drivers --->
+   Firmware Drivers  --->
+      EFI (Extensible Firmware Interface) Support  --->
+         <*> EFI Variable Support via sysfs
+
+File systems  --->
+   Pseudo filesystems  --->
+      <*> EFI Variable filesystem
+
+Device Drivers --->
+   Graphics support --->
+      Frame buffer Devices --->
+         <*> Support for frame buffer devices --->
+            [*] EFI-based Framebuffer Support
+\end{Verbatim}
+        \item \textbf{Initramfs:}
+\begin{Verbatim}[commandchars=\\\{\}]
+General setup  --->
+   [*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
+Device Drivers --->
+   Generic Driver Options --->
+      [*] Maintain a devtmpfs filesystem to mount at /dev
+\end{Verbatim}
+        \item \textbf{LUKS: WIP}
+\begin{Verbatim}[commandchars=\\\{\}]
+[*] Enable loadable module support
+
+Device Drivers --->
+  [*] Multiple devices driver support (RAID and LVM) --->
+    <*> Device mapper support
+      <*> Crypt target support
+
+[*] Cryptographic API --->
+    <*> XTS support
+    -*- SHA224 and SHA256 digest algorithm
+    -*- AES cipher algorithms
+
+General setup  --->
+    [*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
 ??
-File systems  --->
-   Pseudo filesystems  --->
-       <*> EFI Variable filesystem
-
-Device Drivers --->
-   Graphics support --->
-      Frame buffer Devices --->
-         <*> Support for frame buffer devices --->
-            [*] EFI-based Framebuffer Support
-
-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/
-Processor type and features  --->
-    [*] EFI runtime service support
-    [*]   EFI stub support
-    [ ]     EFI mixed-mode support
-    ...
-    ...
-    [*] Built-in kernel command line
-    (root=PARTUUID=<UUID_/dev/mappper/luks>)
-
-File systems  --->
-   Pseudo filesystems  --->
-       <*> EFI Variable filesystem
-
-Device Drivers --->
-   Graphics support --->
-      Frame buffer Devices --->
-         <*> Support for frame buffer devices --->
-            [*] EFI-based Framebuffer Support
-
-root# refind-install
-
-Processor type and features  --->
-    [*] EFI runtime service support
-    [*]   EFI stub support
-    [*]     EFI mixed-mode support
-
-Device Drivers
-    Firmware Drivers  --->
-        EFI (Extensible Firmware Interface) Support  --->
-            <*> EFI Variable Support via sysfs
+[*] Cryptographic API --->
+    <*> User-space interface for hash algorithms
+    <*> User-space interface for symmetric key cipher algorithms
 \end{Verbatim}
         \item \textbf{RAID: WIP}
 \begin{Verbatim}[commandchars=\\\{\}]
@@ -679,14 +668,7 @@ Device Drivers  --->
                <*> I/O Path Selector based on the number of in-flight I/Os
                <*> I/O Path Selector based on the service time
 \end{Verbatim}
-        \item \textbf{LUKS: WIP}
-\begin{Verbatim}[commandchars=\\\{\}]
-[*] Cryptographic API --->
-    <*> XTS support
-    <*> User-space interface for hash algorithms
-    <*> User-space interface for symmetric key cipher algorithms
-\end{Verbatim}
-        \item \textbf{USB:}
+        \item \textbf{USB: TEST}
 \begin{Verbatim}[commandchars=\\\{\}]
 Device Drivers --->
   HID support  --->
@@ -700,7 +682,7 @@ Device Drivers --->
     <*>     EHCI HCD (USB 2.0) support
     <*>     OHCI HCD (USB 1.1) support
 \end{Verbatim}
-        \item \textbf{WiFi: WIP}
+        \item \textbf{WiFi: TEST}
 \begin{Verbatim}[commandchars=\\\{\}]
 [*] Networking support  --->
     [*] Wireless  --->
@@ -743,24 +725,92 @@ Device Drivers  --->
 \end{Verbatim}
     \item \textbf{Generate initramfs [and show included modules]:}
 \begin{Verbatim}[commandchars=\\\{\}]
-\textcolor{root}{(chroot) root#} \textcolor{command}{dracut} --kver <5.15.26-gentoo> --early-microcode -f
+\textcolor{root}{(chroot) root#} \textcolor{command}{dracut} --kver <5.15.26-gentoo> --kernel-cmdline="root=/dev/sda2" -f
 [-M 2> \textcolor{block}{/dev/null}]
+
+--early-microcode ?
+
+---- PARAMS -----
+dracut
+</boot/initramfs-5.15.26-gentoo.img>
+--kver <5.15.26-gentoo>
+-f
+-m "
+i18n
+btrfs
+crypt
+dm
+kernel-modules
+kernel-modules-extra
+resume
+rootfs-block
+terminfo
+udev-rules
+usermount
+base
+fs-lib
+shutdown
+"
+--kernel-cmdline"
+rd.shell
+[rd.vconsole.keymap=de-latin1-nodeadkeys]
+[rd.vconsole.font=eurlatgr]
+[rd.locale.LANG=pl_PL.utf8]
+[rd.locale.LC_ALL=]
+rd.luks.uuid=<UUID_/dev/sda2>
+root=UUID=<UUID_/dev/mapper/luks>
+rootfstype=btrfs
+rootflags=defaults,noatime,nofail
+"
+[--early-microcode]
+-M 2> /dev/null
+
+
+
+
+dracut </boot/initramfs-5.15.26-gentoo.img> --kver <5.15.26-gentoo> -H
+--fstab /etc/fstab -f -M -L 3
+
+
+
+
+
+rd.luks=1 rd.lvm=0 rd.md=0 rd.dm=0 (or omit modules)
+
+rd.shell
+
+dracut --print-cmdline
+
+rd.luks.uuid=luks-c00...399 root=/dev/mapper/luks rootfstype=btrfs rootflags=rw,relatime,space_cache=v2,subvolid=5,subvol=/
+
+
+\end{Verbatim}
+    \item \textbf{Check initramfs content:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{lsinitrd} <\textcolor{file}{/boot/initramfs-<5.15.26-gentoo>.img}>
 \end{Verbatim}
 \end{enumerate}
 
-\section{Bootloader}
+\section{Bootloader WIP}
 \begin{enumerate}
-    \item \textbf{Boot process:}
-\newline \menu[,]{Power Button, POST, Boots disk with ESP, EFI boots .efi application, [rEFInd], kernel + initramfs}
-    \item \textbf{System must be booted fro UEFI!}
+    \item \textbf{System must be booted fro UEFI:}
 \begin{Verbatim}[commandchars=\\\{\}]
 \textcolor{root}{(chroot) root#} \textcolor{command}{dmesg} | \textcolor{command}{grep} -i efi
 \end{Verbatim}
-    \item \textbf{}
+    \item \textbf{Generate rEFInd entry:}
+\begin{Verbatim}[commandchars=\\\{\}]
+\textcolor{root}{(chroot) root#} \textcolor{command}{refind-install}
+
+edit /boot/refi*
+quiet root=/dev/mapper/luks-<UUID_/dev/mapper/luks>
+
+\end{Verbatim}
 \end{enumerate}
 
 \section{Local System Settings}
 See section \ref{section:local_settings}
+
+\section{Finishing WIP}
 
 
 \chapter{Local Settings WIP}
@@ -917,5 +967,25 @@ keymap="us"
 
 \section{Help Me}
 \url{https://forums.gentoo.org/viewtopic-t-1147683.html}
+\url{https://wiki.gentoo.org/wiki/Full_Encrypted_Btrfs/Native_System_Root_Guide}
+
+\section{Future Reads}
+\url{https://wiki.gentoo.org/wiki/SELinux/Tutorials/The_security_context_of_a_process}
+\url{https://wiki.gentoo.org/wiki/Hardened/Introduction_to_Hardened_Gentoo}
+\url{https://wiki.gentoo.org/wiki/Xen}
+
+\chapter{ToDo}
+\begin{itemize}
+    \item \textbf{perfect kernel, dracut and rEFInd}
+    \item \textbf{Finish installation (root password, locales)}
+    \item \textbf{Select and configure init process}
+    \item \textbf{zsh + vim}
+    \item \textbf{Portage + Pentoo}
+    \item \textbf{Networking}
+    \item \textbf{System cleaning}
+    \item \textbf{System hardening}
+    \item \textbf{Xen}
+    \item \textbf{look at hardened ans SELinux}
+\end{itemize}
 
 \end{document}
